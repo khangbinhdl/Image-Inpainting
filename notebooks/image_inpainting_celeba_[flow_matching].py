@@ -115,9 +115,9 @@ def show_batch(images, nrow=8, title=None):
 def compose_inpaint(pred_image, masked_image, mask):
     return masked_image * (1 - mask) + pred_image * mask
 
-def masked_l1_loss(pred, target, mask, eps=1e-8):
+def masked_mae_loss(pred, target, mask, eps=1e-8):
     """
-    Tính L1 trung bình chỉ trên vùng mask.
+    Tính MAE trung bình chỉ trên vùng mask.
     pred, target: [B, 3, H, W]
     mask: [B, 1, H, W]
     """
@@ -409,7 +409,7 @@ def flow_matching_train_step(
         # Chỉ reconstruct vùng mask
         x1_hat = x_t + (1 - t) * v_pred * mask
 
-        loss_recon = masked_l1_loss(
+        loss_recon = masked_mae_loss(
             x1_hat,
             gt_image,
             mask
@@ -493,7 +493,7 @@ def evaluate_flow_matching(
             # Chỉ reconstruct vùng mask
             x1_hat = x_t + (1 - t) * v_pred * mask
 
-            loss_recon = masked_l1_loss(
+            loss_recon = masked_mae_loss(
                 x1_hat,
                 gt_image,
                 mask

@@ -115,9 +115,9 @@ def show_batch(images, nrow=8, title=None):
 def compose_inpaint(pred_image, masked_image, mask):
     return masked_image * (1 - mask) + pred_image * mask
 
-def masked_l1_loss(pred, target, mask, eps=1e-8):
+def masked_mae_loss(pred, target, mask, eps=1e-8):
     """
-    Tính L1 trung bình chỉ trên vùng mask.
+    Tính MAE trung bình chỉ trên vùng mask.
     pred, target: [B, 3, H, W]
     mask: [B, 1, H, W]
     """
@@ -426,7 +426,7 @@ def diffusion_train_step(
     ).sample
 
     # Chỉ học vùng mask
-    loss_l1 = masked_l1_loss(
+    loss_mae = masked_mae_loss(
         pred_x0,
         gt_image,
         mask
@@ -438,7 +438,7 @@ def diffusion_train_step(
         mask
     )
 
-    loss = loss_l1 + mse_weight * loss_mse
+    loss = loss_mae + mse_weight * loss_mse
 
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
@@ -446,7 +446,7 @@ def diffusion_train_step(
 
     return {
         "loss": loss.item(),
-        "loss_l1": loss_l1.item(),
+        "loss_mae": loss_mae.item(),
         "loss_mse": loss_mse.item(),
     }
 
@@ -463,7 +463,7 @@ def evaluate_diffusion(
     model.eval()
 
     total_loss = 0.0
-    total_l1 = 0.0
+    total_mae = 0.0
     total_mse = 0.0
 
     for data in val_loader:
@@ -500,7 +500,7 @@ def evaluate_diffusion(
             timesteps
         ).sample
 
-        loss_l1 = masked_l1_loss(
+        loss_mae = masked_mae_loss(
             pred_x0,
             gt_image,
             mask
@@ -512,17 +512,17 @@ def evaluate_diffusion(
             mask
         )
 
-        loss = loss_l1 + mse_weight * loss_mse
+        loss = loss_mae + mse_weight * loss_mse
 
         total_loss += loss.item()
-        total_l1 += loss_l1.item()
+        total_mae += loss_mae.item()
         total_mse += loss_mse.item()
 
     n = len(val_loader)
 
     return {
         "val_loss": total_loss / n,
-        "val_l1": total_l1 / n,
+        "val_mae": total_mae / n,
         "val_mse": total_mse / n,
     }
 
@@ -542,7 +542,7 @@ for epoch in range(diffusion_epochs):
     diffusion_model.train()
 
     total_loss = 0.0
-    total_l1 = 0.0
+    total_mae = 0.0
     total_mse = 0.0
 
     pbar = tqdm(
@@ -561,17 +561,17 @@ for epoch in range(diffusion_epochs):
         )
 
         total_loss += metrics["loss"]
-        total_l1 += metrics["loss_l1"]
+        total_mae += metrics["loss_mae"]
         total_mse += metrics["loss_mse"]
 
         pbar.set_postfix({
             "loss": metrics["loss"],
-            "l1": metrics["loss_l1"],
+            "mae": metrics["loss_mae"],
             "mse": metrics["loss_mse"],
         })
 
     train_loss = total_loss / len(train_loader)
-    train_l1 = total_l1 / len(train_loader)
+    train_mae = total_mae / len(train_loader)
     train_mse = total_mse / len(train_loader)
 
     val_metrics = evaluate_diffusion(
@@ -585,10 +585,10 @@ for epoch in range(diffusion_epochs):
     print(
         f"[Diffusion] Epoch {epoch + 1}: "
         f"train_loss={train_loss:.5f}, "
-        f"train_l1={train_l1:.5f}, "
+        f"train_mae={train_mae:.5f}, "
         f"train_mse={train_mse:.5f}, "
         f"val_loss={val_metrics['val_loss']:.5f}, "
-        f"val_l1={val_metrics['val_l1']:.5f}, "
+        f"val_mae={val_metrics['val_mae']:.5f}, "
         f"val_mse={val_metrics['val_mse']:.5f}"
     )
 

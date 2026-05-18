@@ -91,9 +91,9 @@ def show_batch(images, nrow=8, title=None):
 def compose_inpaint(pred_image, masked_image, mask):
     return masked_image * (1 - mask) + pred_image * mask
 
-def masked_l1_loss(pred, target, mask, eps=1e-8):
+def masked_mae_loss(pred, target, mask, eps=1e-8):
     """
-    Tính L1 trung bình chỉ trên vùng mask.
+    Tính MAE trung bình chỉ trên vùng mask.
     pred, target: [B, 3, H, W]
     mask: [B, 1, H, W]
     """
@@ -612,7 +612,7 @@ def vae_loss_fn(
     beta=1e-4,
     use_mse=True,
 ):
-    rec_l1 = masked_l1_loss(
+    rec_mae = masked_mae_loss(
         final_image,
         gt_image,
         mask
@@ -626,10 +626,10 @@ def vae_loss_fn(
             gt_image,
             mask
         )
-        rec_loss = rec_l1 + 0.1 * rec_mse
+        rec_loss = rec_mae + 0.1 * rec_mse
         rec_mse_value = rec_mse.item()
     else:
-        rec_loss = rec_l1
+        rec_loss = rec_mae  
 
     kl_loss = -0.5 * torch.mean(
         1 + logvar - mu.pow(2) - logvar.exp()
@@ -639,7 +639,7 @@ def vae_loss_fn(
 
     return loss, {
         "rec_loss": rec_loss.item(),
-        "rec_l1": rec_l1.item(),
+        "rec_mae": rec_mae.item(),
         "rec_mse": rec_mse_value,
         "kl_loss": kl_loss.item(),
     }
@@ -657,7 +657,7 @@ def evaluate_vae(
 
     total_loss = 0.0
     total_rec = 0.0
-    total_l1 = 0.0
+    total_mae = 0.0
     total_mse = 0.0
     total_kl = 0.0
 
@@ -684,7 +684,7 @@ def evaluate_vae(
 
         total_loss += loss.item()
         total_rec += loss_dict["rec_loss"]
-        total_l1 += loss_dict["rec_l1"]
+        total_mae += loss_dict["rec_mae"]
         total_mse += loss_dict["rec_mse"]
         total_kl += loss_dict["kl_loss"]
 
@@ -693,7 +693,7 @@ def evaluate_vae(
     return {
         "val_loss": total_loss / n,
         "val_rec": total_rec / n,
-        "val_l1": total_l1 / n,
+        "val_mae": total_mae / n,
         "val_mse": total_mse / n,
         "val_kl": total_kl / n,
     }
@@ -713,7 +713,7 @@ for epoch in range(vae_epochs):
 
     total_loss = 0.0
     total_rec = 0.0
-    total_l1 = 0.0
+    total_mae = 0.0
     total_mse = 0.0
     total_kl = 0.0
 
@@ -755,14 +755,14 @@ for epoch in range(vae_epochs):
 
         total_loss += loss.item()
         total_rec += loss_dict["rec_loss"]
-        total_l1 += loss_dict["rec_l1"]
+        total_mae += loss_dict["rec_mae"]
         total_mse += loss_dict["rec_mse"]
         total_kl += loss_dict["kl_loss"]
 
         pbar.set_postfix({
             "loss": loss.item(),
             "rec": loss_dict["rec_loss"],
-            "l1": loss_dict["rec_l1"],
+            "mae": loss_dict["rec_mae"],
             "mse": loss_dict["rec_mse"],
             "kl": loss_dict["kl_loss"],
             "beta": current_beta,
@@ -770,7 +770,7 @@ for epoch in range(vae_epochs):
 
     train_loss = total_loss / len(train_loader)
     train_rec = total_rec / len(train_loader)
-    train_l1 = total_l1 / len(train_loader)
+    train_mae = total_mae / len(train_loader)
     train_mse = total_mse / len(train_loader)
     train_kl = total_kl / len(train_loader)
 
@@ -785,12 +785,12 @@ for epoch in range(vae_epochs):
         f"[VAE] Epoch {epoch + 1}: "
         f"train_loss={train_loss:.5f}, "
         f"train_rec={train_rec:.5f}, "
-        f"train_l1={train_l1:.5f}, "
+        f"train_mae={train_mae:.5f}, "
         f"train_mse={train_mse:.5f}, "
         f"train_kl={train_kl:.5f}, "
         f"val_loss={val_metrics['val_loss']:.5f}, "
         f"val_rec={val_metrics['val_rec']:.5f}, "
-        f"val_l1={val_metrics['val_l1']:.5f}, "
+        f"val_mae={val_metrics['val_mae']:.5f}, "
         f"val_mse={val_metrics['val_mse']:.5f}, "
         f"val_kl={val_metrics['val_kl']:.5f}, "
         f"beta={current_beta:.8f}"
