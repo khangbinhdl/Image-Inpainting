@@ -33,10 +33,10 @@ During inference, the models use the masked image and mask to reconstruct the or
 epochs: 100
 beta: 5e-4
 KL warmup epochs: 10
-Optimizer: AdamW(lr=5e-5, weight_decay=1e-3)
-Early stopping patience: 10
+Optimizer: AdamW(lr=5e-5, weight_decay=1e-4)
+Early stopping patience: 5
 ```
-Model stopped at epoch 62 with the best validation loss of0.06566
+Model stopped at epoch 35 with the best validation loss of 0.06801
 
 **Diffusion**
 ```
@@ -45,22 +45,22 @@ Noise Scheduler: DDPMScheduler
   - beta_schedule: squaredcos_cap_v2
   - prediction_type: sample
 
-Optimizer: AdamW(lr=5e-5, weight_decay=1e-3)
+Optimizer: AdamW(lr=5e-5, weight_decay=1e-4)
 epochs: 100
 MSE weight: 0.1
-Early stopping patience: 10
+Early stopping patience: 5
 ```
-Model stopped at epoch 30 with the best validation loss of 0.07031
+Model stopped at epoch 31 with the best validation loss of 0.07912
 *Note: We predict image samples instead of noise for better reconstruction quality.*
 
 **Flow Matching**
 ```
 epochs: 100
 lambda_recon: 0.1
-Optimizer: AdamW(lr=5e-5, weight_decay=1e-3)
-Early stopping patience: 10
+Optimizer: AdamW(lr=5e-5, weight_decay=1e-4)
+Early stopping patience: 5
 ```
-Model stopped at epoch 33 with the best validation loss of 0.06509
+Model stopped at epoch 38 with the best validation loss of 0.09529
 
 ### Validation Results
 
